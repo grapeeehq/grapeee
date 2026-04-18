@@ -51,7 +51,7 @@ The wedge is a Roblox-native agent runtime with strong context:
 - project-aware file scanning
 - `Rojo` tree understanding
 - `Wally` dependency awareness
-- Studio MCP inspection and execution hooks
+- Studio-style inspection and execution hooks exposed by a Grapeee Studio plugin
 - safe change planning with explicit patch review
 
 ## Technical Direction
@@ -59,14 +59,15 @@ The wedge is a Roblox-native agent runtime with strong context:
 The first version should favor the fastest full-stack development path over premature systems optimization.
 
 - `Next.js` + `TypeScript` for the web app
-- `TypeScript` for the companion service and shared logic
+- `TypeScript` for the daemon service and shared logic
+- `Luau` for the Studio plugin
 - `Bun` as the default package manager and local dev runner
-- Node-compatible implementation in the backend and companion for maximum library compatibility
+- Node-compatible implementation in the backend and daemon for maximum library compatibility
 - `Postgres` as the system-of-record database
 - `Better Auth` for authentication
 - `Drizzle` for migrations and typed database access
 
-Rust can still become a later optimization path for the companion if native packaging, long-running daemon stability, or performance constraints justify it.
+Rust can still become a later optimization path for the daemon if native packaging, long-running daemon stability, or performance constraints justify it.
 
 ## Knowledge And Retrieval Direction
 
@@ -116,11 +117,11 @@ This should reduce hallucinated workflows and lower the tendency to anchor too h
 ### In scope
 
 - Web app chat interface
-- Local companion process
+- Local daemon process
 - Project import from an existing local folder
 - Detection of `Rojo` project files and `Wally` config
 - File-based context index for scripts, modules, packages, and services
-- Read-only Studio MCP connection
+- Grapeee Studio plugin with read-focused Studio capabilities
 - Task planning and diff generation
 - Local patch apply after approval
 - compact doc pack retrieval for Roblox, `Rojo`, and `Wally`
@@ -140,8 +141,8 @@ This should reduce hallucinated workflows and lower the tendency to anchor too h
 ## Flow 1: Connect a project
 
 1. User opens the web app
-2. User installs or launches the local companion
-3. Companion registers a local project with the web app session
+2. User installs or launches the local daemon
+3. Daemon registers a local project with the web app session
 4. Grapeee scans for `Rojo`, `Wally`, and source layout
 5. UI shows project health, detected packages, and connection state
 
@@ -155,7 +156,7 @@ This should reduce hallucinated workflows and lower the tendency to anchor too h
    - risks or assumptions
    - a proposed patch
 4. User approves or requests refinement
-5. Companion applies the patch locally
+5. Daemon applies the patch locally
 
 ## Flow 3: Use Studio context
 
@@ -172,7 +173,7 @@ This should reduce hallucinated workflows and lower the tendency to anchor too h
   - what it is assuming
 - The product should default to proposing diffs, not silent writes
 - Errors should be actionable and Roblox-specific
-- The UI should make the local-companion requirement feel normal, not scary
+- The UI should make the local daemon and optional Studio plugin feel normal, not scary
 
 ## Trust Requirements
 
@@ -199,7 +200,7 @@ That keeps the promise ambitious without implying one-click replacement of real 
 ## V1 Milestones
 
 1. Project import and scan
-2. Read-only Studio MCP connection
+2. Read-focused Studio plugin connection
 3. Chat plus context panel
 4. Patch proposal and approval flow
 5. Basic model routing through OpenRouter

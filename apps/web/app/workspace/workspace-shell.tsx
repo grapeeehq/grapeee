@@ -106,6 +106,7 @@ export function WorkspaceShell({
   const [hydrated, setHydrated] = useState(false);
   const [signOutPending, setSignOutPending] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const activeThreadId = useMemo(() => {
     const m = pathname?.match(/^\/workspace\/([^/]+)/);
@@ -426,18 +427,18 @@ export function WorkspaceShell({
 
   return (
     <WorkspaceContext.Provider value={ctx}>
-      <div className={`ws ${inThread ? "ws-rail-mode" : ""}`}>
+      <div className={`ws ${inThread ? "ws-rail-mode" : ""} ${inThread && historyOpen ? "ws-history-open" : ""}`}>
         {inThread ? (
           <RailSide
             user={user}
             initials={initials}
             thread={activeThread!}
-            threads={threads}
-            onNewThread={createEmptyThread}
             menuOpen={menuOpen}
             setMenuOpen={setMenuOpen}
             signOutPending={signOutPending}
             onSignOut={handleSignOut}
+            historyOpen={historyOpen}
+            setHistoryOpen={setHistoryOpen}
           />
         ) : (
           <aside className="ws-side">
@@ -479,6 +480,7 @@ export function WorkspaceShell({
           </aside>
         )}
 
+
         <main className="ws-main">{children}</main>
 
         <style>{styles}</style>
@@ -490,12 +492,14 @@ export function WorkspaceShell({
 type AgentStatus = "idle" | "thinking" | "ready";
 
 export function getThreadStatus(thread: Thread): AgentStatus {
-  const msgs = thread.chats[0]?.messages ?? [];
-  if (msgs.length === 0) return "idle";
-  const last = msgs[msgs.length - 1];
-  if (last.pending) return "thinking";
-  if (last.role === "assistant") return "ready";
-  return "thinking";
+  let status: AgentStatus = "idle";
+  for (const c of thread.chats) {
+    const last = c.messages[c.messages.length - 1];
+    if (!last) continue;
+    if (last.pending) return "thinking";
+    if (last.role === "assistant") status = "ready";
+  }
+  return status;
 }
 
 function relativeDate(ts: number) {
@@ -518,6 +522,8 @@ function RailSide({
   setMenuOpen,
   signOutPending,
   onSignOut,
+  historyOpen,
+  setHistoryOpen,
 }: {
   user: WorkspaceUser;
   initials: string;
@@ -526,23 +532,24 @@ function RailSide({
   setMenuOpen: (v: boolean | ((p: boolean) => boolean)) => void;
   signOutPending: boolean;
   onSignOut: () => void;
+  historyOpen: boolean;
+  setHistoryOpen: (v: boolean | ((p: boolean) => boolean)) => void;
 }) {
   const { getActiveChatId, setActiveChat, createChat } = useWorkspace();
-  const [historyOpen, setHistoryOpen] = useState(false);
   const activeChatId = getActiveChatId(thread.id);
 
   return (
-    <aside className="ws-rail">
-      <div className="ws-rail-top">
-        <Link href="/workspace" className="ws-rail-brand" aria-label="grapeee home">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logosmall.svg" alt="" className="ws-brand-mark" />
-        </Link>
+    <aside className={`ws-rail ${historyOpen ? "ws-rail-wide" : ""}`}>
+      <div className="ws-rail-icons">
+        <div className="ws-rail-top">
+          <Link href="/workspace" className="ws-rail-brand" aria-label="grapeee home">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logosmall.svg" alt="" className="ws-brand-mark" />
+          </Link>
 
-        <div className="ws-rail-pop-host">
           <button
             type="button"
-            className="ws-rail-icon"
+            className={`ws-rail-icon ${historyOpen ? "ws-rail-icon-active" : ""}`}
             onClick={() => setHistoryOpen((v) => !v)}
             aria-label="Chat history"
             title="Chat history"
@@ -552,93 +559,94 @@ function RailSide({
               <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </button>
-          {historyOpen ? (
-            <div className="ws-rail-pop ws-rail-pop-wide" role="dialog">
-              <div className="ws-pop-head">Chats in this thread</div>
-              <ul className="ws-pop-list">
-                {thread.chats.map((c) => {
-                  const last = c.messages[c.messages.length - 1];
-                  const status: AgentStatus =
-                    c.messages.length === 0
-                      ? "idle"
-                      : last?.pending
-                        ? "thinking"
-                        : last?.role === "assistant"
-                          ? "ready"
-                          : "thinking";
-                  return (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        className={`ws-pop-item ${c.id === activeChatId ? "ws-pop-item-active" : ""}`}
-                        onClick={() => {
-                          setActiveChat(thread.id, c.id);
-                          setHistoryOpen(false);
-                        }}
-                      >
-                        <span className={`ws-dot ws-dot-${status}`} />
-                        <span className="ws-pop-item-name">{c.title}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+        </div>
+
+        <div className="ws-rail-bottom">
+          <button
+            type="button"
+            className="ws-rail-avatar"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label={user.name}
+            title={user.name}
+          >
+            {user.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.image} alt="" />
+            ) : (
+              <span>{initials}</span>
+            )}
+          </button>
+          {menuOpen ? (
+            <div className="ws-menu ws-menu-rail" role="menu">
               <button
                 type="button"
-                className="ws-pop-action"
-                onClick={() => {
-                  createChat(thread.id);
-                  setHistoryOpen(false);
-                }}
+                role="menuitem"
+                onClick={onSignOut}
+                disabled={signOutPending}
               >
-                + New chat
+                {signOutPending ? "Signing out…" : "Sign out"}
               </button>
             </div>
           ) : null}
         </div>
-
-        <button
-          type="button"
-          className="ws-rail-icon"
-          onClick={() => createChat(thread.id)}
-          aria-label="New chat"
-          title="New chat"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M4 5h11M4 10h11M4 15h7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            <path d="M17 16v6M14 19h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-        </button>
       </div>
 
-      <div className="ws-rail-bottom">
-        <button
-          type="button"
-          className="ws-rail-avatar"
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-label={user.name}
-          title={user.name}
-        >
-          {user.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.image} alt="" />
-          ) : (
-            <span>{initials}</span>
-          )}
-        </button>
-        {menuOpen ? (
-          <div className="ws-menu ws-menu-rail" role="menu">
+      {historyOpen ? (
+        <div className="ws-rail-chats">
+          <div className="ws-history-head">
             <button
               type="button"
-              role="menuitem"
-              onClick={onSignOut}
-              disabled={signOutPending}
+              className="ws-history-back"
+              onClick={() => setHistoryOpen(false)}
+              aria-label="Close chat history"
             >
-              {signOutPending ? "Signing out…" : "Sign out"}
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+                <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            <div className="ws-history-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+              Chat History
+            </div>
+          </div>
+
+          <div className="ws-history-body">
+            {thread.chats.map((c) => {
+              const isActive = c.id === activeChatId;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`ws-history-item ${isActive ? "ws-history-item-active" : ""}`}
+                  onClick={() => {
+                    setActiveChat(thread.id, c.id);
+                    setHistoryOpen(false);
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path d="M4 5h16v11H9l-5 4V5z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                  </svg>
+                  <span className="ws-history-item-name">{c.title}</span>
+                  {isActive ? <span className="ws-history-item-tag">(current)</span> : null}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              className="ws-history-new"
+              onClick={() => {
+                createChat(thread.id);
+                setHistoryOpen(false);
+              }}
+            >
+              <span aria-hidden>+</span> Start a new chat
             </button>
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </aside>
   );
 }
@@ -677,10 +685,11 @@ export function HeroPane() {
 }
 
 export function ThreadPane({ threadId }: { threadId: string }) {
-  const { getThread, sendMessage, hydrated } = useWorkspace();
+  const { getThread, sendMessage, hydrated, getActiveChatId } = useWorkspace();
   const router = useRouter();
   const thread = getThread(threadId);
-  const chat = thread?.chats[0] ?? null;
+  const activeChatId = getActiveChatId(threadId);
+  const chat = thread?.chats.find((c) => c.id === activeChatId) ?? thread?.chats[0] ?? null;
   const threadRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -728,8 +737,14 @@ export function ThreadPane({ threadId }: { threadId: string }) {
   return (
     <div className="ws-thread-view">
       <header className="ws-thread-head">
-        <h1>{thread.name}</h1>
-        <ThreadStatusPill status={getThreadStatus(thread)} />
+        <div className="ws-thread-head-left">
+          <h1>{thread.name}</h1>
+          <ThreadStatusPill status={getThreadStatus(thread)} />
+        </div>
+        <div className="ws-thread-head-right">
+          <ConnectionIndicator thread={thread} />
+          <NewChatButton threadId={thread.id} />
+        </div>
       </header>
 
       <section className="ws-convo" ref={threadRef}>
@@ -746,6 +761,64 @@ export function ThreadPane({ threadId }: { threadId: string }) {
           placeholder="Reply, or @-mention a game for context…"
         />
       </footer>
+    </div>
+  );
+}
+
+function NewChatButton({ threadId }: { threadId: string }) {
+  const { createChat } = useWorkspace();
+  return (
+    <button
+      type="button"
+      className="ws-conn-icon"
+      onClick={() => createChat(threadId)}
+      aria-label="New chat"
+      title="New chat"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M4 5h11M4 10h11M4 15h7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M17 16v6M14 19h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    </button>
+  );
+}
+
+function ConnectionIndicator({ thread }: { thread: Thread }) {
+  const [open, setOpen] = useState(false);
+  const connected = thread.pluginConnected || thread.cliConnected;
+  return (
+    <div className="ws-conn-host">
+      <button
+        type="button"
+        className={`ws-conn-icon ${connected ? "ws-conn-ok" : "ws-conn-bad"}`}
+        onClick={() => setOpen((v) => !v)}
+        aria-label={connected ? "Connected" : "Plugin/CLI not connected"}
+        title={connected ? "Connected" : "Plugin/CLI not connected"}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M2 8.5C5 6 8.4 4.5 12 4.5s7 1.5 10 4M5 12.2C7 10.5 9.4 9.5 12 9.5s5 1 7 2.7M8 15.8c1.2-1 2.5-1.5 4-1.5s2.8.5 4 1.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <circle cx="12" cy="19" r="1.4" fill="currentColor" />
+          {!connected ? (
+            <path d="M4 4L20 20" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          ) : null}
+        </svg>
+      </button>
+      {open ? (
+        <div className="ws-conn-pop" role="dialog">
+          <div className="ws-pop-head">Connection</div>
+          <div className="ws-pop-row">
+            <span className={`ws-dot ${thread.pluginConnected ? "ws-dot-ok" : "ws-dot-bad"}`} />
+            Studio plugin {thread.pluginConnected ? "connected" : "not connected"}
+          </div>
+          <div className="ws-pop-row">
+            <span className={`ws-dot ${thread.cliConnected ? "ws-dot-ok" : "ws-dot-bad"}`} />
+            CLI {thread.cliConnected ? "connected" : "not connected"}
+          </div>
+          {!connected ? (
+            <p className="ws-pop-hint">Install the Studio plugin or run <code>grapeee</code> in your project to enable file edits.</p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1288,13 +1361,69 @@ const styles = `
 
   /* slim icon rail (in-thread) */
   .ws-rail-mode { grid-template-columns: 56px 1fr; }
+  .ws-rail-mode.ws-history-open { grid-template-columns: 316px 1fr; }
+
+  .ws-rail { display: grid; grid-template-columns: 56px; overflow: hidden; }
+  .ws-rail-wide { grid-template-columns: 56px 260px; }
+  .ws-rail-icons { display: grid; grid-template-rows: 1fr auto; padding: 14px 0; min-width: 0; }
+  .ws-rail-chats {
+    display: grid; grid-template-rows: auto 1fr;
+    padding: 16px 12px 16px 4px;
+    min-width: 0; overflow: hidden;
+  }
+
+  .ws-history-head {
+    display: flex; align-items: center; gap: 8px;
+    padding-bottom: 14px; margin-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .ws-history-back {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06);
+    color: #b6b0a6; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 auto;
+  }
+  .ws-history-back:hover { background: rgba(255, 255, 255, 0.08); color: #f3efe7; }
+  .ws-history-title {
+    flex: 1;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px; padding: 7px 10px;
+    font-size: 0.9rem; font-weight: 600; color: #f3efe7;
+  }
+  .ws-history-body {
+    display: grid; gap: 6px; align-content: start;
+    overflow-y: auto; padding-top: 6px;
+    scrollbar-width: none;
+  }
+  .ws-history-body::-webkit-scrollbar { width: 0; display: none; }
+  .ws-history-item {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; text-align: left;
+    background: transparent; border: 1px solid transparent;
+    color: #f3efe7; padding: 10px 12px; border-radius: 10px;
+    font-size: 0.9rem; cursor: pointer;
+  }
+  .ws-history-item:hover { background: rgba(255, 255, 255, 0.04); }
+  .ws-history-item-active { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.08); }
+  .ws-history-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .ws-history-item-tag { font-size: 0.78rem; color: #8a8474; font-weight: 400; }
+  .ws-history-new {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; text-align: left;
+    background: transparent; border: 1px dashed rgba(255, 255, 255, 0.14);
+    color: #8a8474; padding: 10px 12px; border-radius: 10px;
+    font-size: 0.9rem; font-style: italic; cursor: pointer;
+    margin-top: 2px;
+  }
+  .ws-history-new:hover { border-color: rgba(184, 117, 185, 0.4); color: #e8d6ea; background: rgba(184, 117, 185, 0.06); }
+  .ws-history-new span[aria-hidden] { font-style: normal; }
   .ws-rail {
-    display: grid; grid-template-rows: 1fr auto;
     border-right: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(15, 17, 23, 0.96);
-    padding: 14px 0;
   }
-  .ws-rail-top { display: grid; gap: 8px; justify-items: center; }
+  .ws-rail-top { display: grid; gap: 4px; justify-items: center; align-content: start; }
   .ws-rail-bottom { display: grid; justify-items: center; padding-bottom: 6px; position: relative; }
   .ws-rail-brand {
     display: inline-flex; align-items: center; justify-content: center;
@@ -1303,16 +1432,14 @@ const styles = `
   }
   .ws-rail-brand:hover { background: rgba(255, 255, 255, 0.05); }
   .ws-rail-pop-host { position: relative; }
-  .ws-rail-btn {
-    width: 36px; height: 36px; border-radius: 10px;
-    background: rgba(255, 255, 255, 0.04); color: #b6b0a6; border: 1px solid rgba(255, 255, 255, 0.06);
+  .ws-rail-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: transparent; color: #8a8474; border: 0;
     cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-    transition: background 120ms ease, color 120ms ease;
+    transition: color 120ms ease, background 120ms ease;
   }
-  .ws-rail-btn:hover { background: rgba(255, 255, 255, 0.1); color: #f3efe7; }
-  .ws-rail-btn-ok { color: #4ad295; border-color: rgba(74, 210, 149, 0.2); }
-  .ws-rail-btn-bad { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.25); background: rgba(255, 107, 107, 0.06); }
-  .ws-rail-btn-bad:hover { background: rgba(255, 107, 107, 0.12); color: #ff8e8e; }
+  .ws-rail-icon:hover { color: #f3efe7; background: rgba(255, 255, 255, 0.04); }
+  .ws-rail-icon-active { color: #f3efe7; background: rgba(184, 117, 185, 0.14); }
   .ws-rail-avatar {
     width: 32px; height: 32px; border-radius: 999px;
     background: #B875B9; color: #0a0a0a; border: 0; cursor: pointer;
@@ -1367,6 +1494,40 @@ const styles = `
   @keyframes ws-pulse { 50% { opacity: 0.55; } }
 
   .ws-thread-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+  .ws-thread-head-left { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+  .ws-thread-head-right { display: inline-flex; align-items: center; gap: 4px; }
+
+  .ws-conn-host { position: relative; }
+  .ws-conn-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: transparent; border: 0; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #8a8474; transition: color 120ms ease, background 120ms ease;
+  }
+  .ws-conn-icon:hover { background: rgba(255, 255, 255, 0.04); color: #f3efe7; }
+  .ws-conn-ok { color: #4ad295; }
+  .ws-conn-bad { color: #ff6b6b; }
+  .ws-conn-bad:hover { color: #ff8e8e; }
+  .ws-conn-pop {
+    position: absolute; right: 0; top: calc(100% + 8px);
+    width: 260px;
+    background: #15181f; border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px; padding: 10px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    z-index: 30;
+  }
+
+  .ws-pop-action {
+    margin-top: 6px;
+    width: 100%; text-align: left;
+    background: rgba(184, 117, 185, 0.12); border: 1px solid rgba(184, 117, 185, 0.3);
+    color: #e8d6ea; padding: 8px 10px; border-radius: 8px;
+    font-size: 0.88rem; cursor: pointer;
+  }
+  .ws-pop-action:hover { background: rgba(184, 117, 185, 0.2); }
+
+  .ws-pop-item { width: 100%; background: transparent; border: 0; cursor: pointer; }
+
   .ws-status {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 5px 10px 5px 9px; border-radius: 999px;
@@ -1377,7 +1538,8 @@ const styles = `
   .ws-status-ready { color: #b1ebcf; border-color: rgba(74, 210, 149, 0.3); background: rgba(74, 210, 149, 0.08); }
 
   @media (max-width: 760px) {
-    .ws-rail-mode { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    .ws-rail-mode, .ws-rail-mode.ws-history-open { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    .ws-rail-wide { grid-template-columns: 1fr; grid-template-rows: auto auto; }
     .ws-rail { grid-template-rows: auto; grid-auto-flow: column; padding: 10px; justify-content: start; gap: 8px; }
     .ws-rail-top { grid-auto-flow: column; }
     .ws-rail-bottom { padding: 0; }

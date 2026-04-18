@@ -5,7 +5,7 @@
 Grapeee should start as a two-part system:
 
 - a hosted or local web app for UI and orchestration
-- a local companion service that has permission to work with the Roblox project and Studio
+- a local runtime made of a daemon plus an optional Studio plugin
 
 This avoids the biggest trap in a web-first product: pretending the browser can directly manage local development state.
 
@@ -31,7 +31,7 @@ Suggested stack:
 - `Drizzle` for database access
 - `Postgres` for persistence
 
-### Local companion
+### Local daemon
 
 Responsibilities:
 
@@ -39,7 +39,7 @@ Responsibilities:
 - read and write project files after approval
 - run project-aware scans
 - expose safe wrappers around tools such as `Rojo`
-- connect to Roblox Studio MCP
+- broker Studio plugin connectivity
 - stream local state back to the web app
 
 Suggested stack:
@@ -48,6 +48,21 @@ Suggested stack:
 - `Bun` for local development speed
 - Node-compatible runtime assumptions for compatibility with the broader ecosystem
 - long-lived local daemon with a small local HTTP or WebSocket server
+
+### Studio plugin
+
+Responsibilities:
+
+- expose live Studio session presence
+- surface selection, hierarchy, and inspectable instance state
+- run Studio-only actions such as Luau execution and playtesting
+- register one or more Studio sessions with the local daemon
+
+Suggested stack:
+
+- `Luau`
+- plugin-side transport to the local daemon over local HTTP or WebSocket
+- capability coverage modeled after Roblox Studio MCP, but exposed through Grapeee's own runtime contract
 
 ### Agent core
 
@@ -93,8 +108,8 @@ Responsibilities:
 ## Data Flow
 
 1. User sends a request from the web app
-2. Web app asks the companion for current project context
-3. Companion returns a compact snapshot of files, configs, and status
+2. Web app asks the daemon for current project context
+3. Daemon returns a compact snapshot of files, configs, status, and any connected Studio metadata
 4. Agent core builds a prompt with:
    - user request
    - project context
@@ -211,10 +226,11 @@ grapeee/
 Build the smallest end-to-end feature that proves the product shape:
 
 1. a user opens the web app
-2. the companion connects from the local machine
-3. the companion scans a Roblox project for `Rojo` and `Wally`
-4. the web app shows detected project metadata
-5. the user asks for a simple change
-6. the agent produces a plan and a mock diff
+2. the daemon connects from the local machine
+3. the daemon scans a Roblox project for `Rojo` and `Wally`
+4. the Studio plugin optionally registers a live Studio session
+5. the web app shows detected project metadata
+6. the user asks for a simple change
+7. the agent produces a plan and a mock diff
 
 That slice proves the hardest product question early: whether the web-plus-local architecture feels smooth enough for real users.

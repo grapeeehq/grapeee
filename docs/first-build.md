@@ -17,7 +17,8 @@ It does not need to generate production-ready games. It needs to prove the core 
 The first slice should be intentionally small:
 
 - one web app
-- one local companion
+- one local daemon
+- one Studio plugin build target
 - one connected local project
 - one connected Studio session in read-only mode
 - one chat thread
@@ -34,7 +35,7 @@ The first slice should be intentionally small:
 Purpose:
 
 - explain what Grapeee is
-- set expectations around web app plus local companion
+- set expectations around web app plus local daemon
 - drive the user into connection flow
 
 Primary content:
@@ -47,14 +48,14 @@ Primary content:
 
 Purpose:
 
-- attach the current browser session to a local companion
+- attach the current browser session to a local daemon
 - confirm a project path
 - show whether the project looks like a Roblox project
 
 Primary states:
 
-- companion not installed
-- companion running but no project selected
+- daemon not installed
+- daemon running but no project selected
 - project connected
 - project connected with warnings
 
@@ -125,15 +126,22 @@ The first build should not promise:
 - game-wide autonomous rewrites
 - direct publishing to Roblox
 
-## Companion Responsibilities
+## Daemon Responsibilities
 
-- expose companion status
+- expose daemon status
 - select a project root
 - scan for `default.project.json`, `*.project.json`, `wally.toml`, and lockfiles
 - index Lua or Luau source files
 - report a compact project snapshot
 - apply approved patches
-- expose read-only Studio MCP probes
+- broker plugin status and Studio-derived context
+
+## Studio Plugin Responsibilities
+
+- expose Studio session status
+- expose read-only hierarchy and selection probes
+- expose script read and search operations
+- expose controlled Studio execution and playtest hooks in later phases
 
 ## Web App Responsibilities
 
@@ -148,21 +156,22 @@ The first build should not promise:
 
 1. User opens Grapeee
 2. User signs in
-3. User launches the companion
+3. User launches the daemon
 4. User selects a local project
-5. Companion scans and returns project metadata
-6. UI shows detected context and any warnings
-7. User asks for a simple change
-8. Agent requests project context and doc notes
-9. Agent returns:
+5. Daemon scans and returns project metadata
+6. User connects the Studio plugin
+7. UI shows detected context and any warnings
+8. User asks for a simple change
+9. Agent requests project context and doc notes
+10. Agent returns:
    - task summary
    - working notes
    - assumptions
    - plan
    - patch draft
-10. User reviews the patch
-11. User approves
-12. Companion applies the patch locally
+11. User reviews the patch
+12. User approves
+13. Daemon applies the patch locally
 
 ## API Surface For The First Build
 
@@ -174,13 +183,22 @@ The backend API should stay small:
 - `GET /api/tasks/:id`
 - `POST /api/tasks/:id/approve`
 
-The companion should expose a small local API:
+The daemon should expose a small local API:
 
 - `GET /health`
 - `POST /projects/connect`
 - `GET /projects/current/context`
-- `GET /studio/status`
 - `POST /patches/apply`
+
+The Studio plugin should expose a small local runtime surface to the daemon:
+
+- `studio.status.get`
+- `studio.selection.get`
+- `studio.tree.search`
+- `studio.instance.inspect`
+- `studio.script.read`
+- `studio.script.search`
+- `studio.script.grep`
 
 ## First Build Acceptance Criteria
 
@@ -204,7 +222,7 @@ These are good shortcuts for the first pass:
 
 ## What We Learn From This Build
 
-- whether users trust the companion model
+- whether users trust the daemon-plus-plugin model
 - whether project scanning is good enough to ground the agent
 - whether doc notes reduce hallucinations
 - whether patch review feels better than direct generation

@@ -188,7 +188,12 @@ Core fields:
 
 Purpose:
 
-- keep track of active local companion sessions
+- keep track of active local daemon sessions in the current prototype schema
+
+Note:
+
+- this table name reflects the current scaffold, not the long-term architecture term
+- the preferred end-state is a more general `runtime_connections` model that can represent both daemon and Studio plugin hosts
 
 Core fields:
 
