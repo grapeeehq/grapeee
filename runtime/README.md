@@ -1,6 +1,6 @@
 # Grapeee Runtime
 
-This directory is the landing zone for the Rojo fork.
+This directory contains Grapeee Runtime API notes. The Rojo fork itself lives in `plugin/rojo`.
 
 The target is not a clean-room sync engine. Grapeee should fork Rojo, preserve the mature Rust/Studio plugin foundation, and add a thin agent-facing API for Studio inspection, structured operations, snapshots, rollback, and logs.
 
@@ -8,9 +8,10 @@ The target is not a clean-room sync engine. Grapeee should fork Rojo, preserve t
 
 ```text
 runtime/
-  rojo/             # Rojo fork or submodule
   patches/          # Grapeee-specific patch notes while staying upstream-aware
   docs/             # runtime API notes
+plugin/
+  rojo/             # Rojo fork submodule
 ```
 
 ## First Runtime API
@@ -28,12 +29,11 @@ runtime/
 Once the GitHub fork exists:
 
 ```bash
-git submodule add git@github.com:grapeee/rojo.git runtime/rojo
+git submodule add https://github.com/grapeeehq/rojo.git plugin/rojo
 ```
 
 Until then, use upstream locally for exploration:
 
 ```bash
-git clone https://github.com/rojo-rbx/rojo.git runtime/rojo
+git clone https://github.com/grapeeehq/rojo.git plugin/rojo
 ```
-

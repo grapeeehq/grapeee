@@ -33,6 +33,7 @@ Grapeee should hide Rojo from beginners while keeping its technical strengths.
 apps/web       Next.js UI for prompt flow, connection state, history, rollback
 apps/api       FastAPI control plane for auth, sessions, model calls, persistence
 runtime/       Rojo fork integration point and Grapeee runtime notes
+plugin/        Forked Rojo source and Studio plugin foundation
 deploy/        Docker, nginx, and production deployment files
 old/           Previous prototype, preserved for reference
 ```
@@ -128,7 +129,7 @@ Model calls should be split by cost:
 
 ## MVP
 
-1. Fork or vendor Rojo as `runtime/rojo`.
+1. Fork Rojo as `plugin/rojo`.
 2. Build the upstream runtime locally.
 3. Add Grapeee runtime health/session endpoints.
 4. Add branded Studio plugin status and connection flow.
@@ -179,4 +180,3 @@ First demos:
 - farming plots
 - simulator loop
 - leaderboard/stat saving scaffold
-

@@ -4,9 +4,9 @@ old/node_modules
 node_modules
 apps/web/.next
 apps/web/tsconfig.tsbuildinfo
+plugin/rojo
 __pycache__
 .pytest_cache
 .ruff_cache
 .env
 postgres-data
-
