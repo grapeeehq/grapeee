@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "grapeee-api"
+version = "0.1.0"
+description = "Grapeee FastAPI control plane"
+requires-python = ">=3.12"
+dependencies = [
+  "alembic>=1.16.0",
+  "apscheduler>=3.11.0",
+  "authlib>=1.6.0",
+  "bcrypt>=4.3.0",
+  "dramatiq[redis]>=1.18.0",
+  "email-validator>=2.2.0",
+  "fastapi>=0.116.0",
+  "httpx>=0.28.0",
+  "orjson>=3.10.0",
+  "passlib[bcrypt]>=1.7.4",
+  "psycopg[binary]>=3.2.0",
+  "pydantic>=2.11.0",
+  "pydantic-settings>=2.10.0",
+  "python-dotenv>=1.1.0",
+  "python-jose[cryptography]>=3.5.0",
+  "python-multipart>=0.0.20",
+  "redis>=6.2.0",
+  "resend>=2.10.0",
+  "sqlalchemy>=2.0.0",
+  "uvicorn[standard]>=0.35.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.16.0",
+  "pytest>=8.4.0",
+  "pytest-asyncio>=1.0.0",
+  "ruff>=0.12.0"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+

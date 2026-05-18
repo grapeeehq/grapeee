@@ -1,0 +1,20 @@
+{
+  "name": "Grapeee",
+  "tree": {
+    "$className": "Folder",
+    "Plugin": {
+      "$path": "src"
+    },
+    "Packages": {
+      "Roact": {
+        "$path": "Packages/Roact"
+      }
+    },
+    "Version": {
+      "$path": "Version.txt"
+    },
+    "UploadDetails": {
+      "$path": "UploadDetails.json"
+    }
+  }
+}

@@ -1,10 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: [
-    "@grapeee/agent-core",
-    "@grapeee/shared-types",
-  ],
+  reactStrictMode: true,
 };
 
 export default nextConfig;
+

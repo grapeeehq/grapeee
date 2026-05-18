@@ -1,0 +1,21 @@
+{
+  "name": "grapeee",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Open-source Roblox-native AI copilot",
+  "packageManager": "bun@1.3.10",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "bun run --cwd apps/web dev",
+    "dev:companion": "bun run --cwd apps/companion dev",
+    "build": "bun run --cwd packages/shared-types build && bun run --cwd packages/roblox-context build && bun run --cwd packages/knowledge-system build && bun run --cwd packages/agent-core build && bun run --cwd apps/companion build && bun run --cwd apps/web build",
+    "typecheck": "bun run --cwd packages/shared-types typecheck && bun run --cwd packages/roblox-context typecheck && bun run --cwd packages/knowledge-system typecheck && bun run --cwd packages/agent-core typecheck && bun run --cwd apps/companion typecheck && bun run --cwd apps/web typecheck",
+    "db:generate": "bun run --cwd apps/web db:generate",
+    "docker:up": "docker-compose up --build postgres web",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f postgres web"
+  }
+}
